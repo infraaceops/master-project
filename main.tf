@@ -1,3 +1,8 @@
+resource "azurerm_resource_group" "this" {
+  name     = var.resource_group_name
+  location = var.location
+}
+
 module "storage_account" {
   source                  = "./modules/storage_account"
   storage_account_name    = var.storage_account_name
@@ -7,4 +12,5 @@ module "storage_account" {
   account_replication_type= var.account_replication_type
   tags                    = var.tags
   access_tier             = var.access_tier
+  depends_on = [ azurerm_resource_group.this ]
 }

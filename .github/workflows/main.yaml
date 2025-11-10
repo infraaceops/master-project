@@ -65,4 +65,4 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         run: |
-          terraform plan
+          terraform plan -var-file envs/dev/dev.tfvars -no-color
