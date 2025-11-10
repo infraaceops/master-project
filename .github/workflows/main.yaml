@@ -39,6 +39,8 @@ jobs:
           ARM_CONTAINER_NAME:  ${{ secrets.BACKEND_CONTAINER_NAME }}
           ARM_KEY:             ${{ secrets.BACKEND_KEY }}
         run: |
+          az login --service-principal -u ${ARM_CLIENT_ID} -p ${ARM_CLIENT_SECRET} --tenant ${ARM_TENANT_ID}
+          az account set --subscription ${ARM_SUBSCRIPTION_ID}
           # Fail fast on missing secrets
           set -euo pipefail
           for var in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID \
