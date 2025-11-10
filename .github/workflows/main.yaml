@@ -24,48 +24,45 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
-          terraform_wrapper: false
+          terraform_wrapper: false  # Disable wrapper to avoid masking outputs
 
-      - name: Terraform Init (AzureRM Backend)
+    #   - name: Azure Login
+    #     uses: azure/login@v2
+    #     with:
+    #         creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Bootstrap Terraform Backend
+        id: init
         env:
-          # 🔐 AzureRM Provider Auth (Service Principal)
-          ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
+          BACKEND_CONTAINER_NAME: ${{ secrets.BACKEND_CONTAINER_NAME }}
+          BACKEND_STORAGE_ACCOUNT: ${{ secrets.BACKEND_STORAGE_ACCOUNT }}
+          BACKEND_RESOURCE_GROUP_NAME: ${{ secrets.BACKEND_RESOURCE_GROUP_NAME }}
+          BACKEND_KEY: ${{ secrets.BACKEND_KEY }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-
-          # 🗃️ Backend Config (azurerm backend)
-          ARM_STORAGE_ACCOUNT: ${{ secrets.BACKEND_STORAGE_ACCOUNT }}
-          ARM_CONTAINER_NAME:  ${{ secrets.BACKEND_CONTAINER_NAME }}
-          ARM_KEY:             ${{ secrets.BACKEND_KEY }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         run: |
-          az login --service-principal -u ${ARM_CLIENT_ID} -p ${ARM_CLIENT_SECRET} --tenant ${ARM_TENANT_ID}
-          az account set --subscription ${ARM_SUBSCRIPTION_ID}
-          # Fail fast on missing secrets
-          set -euo pipefail
-          for var in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID \
-                     ARM_STORAGE_ACCOUNT ARM_CONTAINER_NAME ARM_KEY; do
-            if [ -z "${!var}" ]; then
-              echo "::error::Missing required secret: $var"
-              exit 1
-            fi
-          done
-
-          echo "✅ Initializing Terraform with AzureRM backend..."
-
-          terraform init \
-            -backend-config="storage_account_name=${ARM_STORAGE_ACCOUNT}" \
-            -backend-config="container_name=${ARM_CONTAINER_NAME}" \
-            -backend-config="key=${ARM_KEY}" \
-            -input=false \
-            -no-color
+            az login --service-principal -u ${ARM_CLIENT_ID} -p ${ARM_CLIENT_SECRET} --tenant ${ARM_TENANT_ID}
+            az account set --subscription ${ARM_SUBSCRIPTION_ID}
+            echo "resource_group_name  = \"${BACKEND_RESOURCE_GROUP_NAME}\"" >> backend.tfvars
+            echo "storage_account_name = \"${BACKEND_STORAGE_ACCOUNT}\"" >> backend.tfvars
+            echo "container_name       = \"${BACKEND_CONTAINER_NAME}\"" >> backend.tfvars
+            echo "key                  = \"${BACKEND_KEY}\"" >> backend.tfvars
+    
+            terraform init \
+                -backend-config=backend.tfvars \
+                -input=false \
+                -no-color
 
       - name: Terraform Validate
         run: terraform validate -no-color
 
       - name: Terraform Plan
+        env:
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
         run: |
-          terraform plan \
-            -input=false \
-            -no-color \
-            -out=tfplan
+          terraform plan
