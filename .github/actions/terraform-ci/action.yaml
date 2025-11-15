@@ -71,9 +71,69 @@ runs:
       shell: bash
       run: terraform validate -no-color
 
-    - name: Terraform ${ { inputs.action | capitalize } }
+    - name: Terraform ${{ inputs.action }}
       shell: bash
       run: |
-        terraform ${{ inputs.action }} \
-          -var-file="${{ inputs.tfvars_file }}" \
-          -no-color
+        ACTION="${{ inputs.action }}"
+        TFVARS="${{ inputs.tfvars_file }}"
+
+        echo "Requested action: $ACTION"
+
+        case "$ACTION" in
+          plan)
+            terraform plan \
+              -var-file="$TFVARS" \
+              -input=false \
+              -no-color
+            ;;
+
+          apply)
+            terraform apply \
+              -var-file="$TFVARS" \
+              -auto-approve \
+              -input=false \
+              -no-color
+            ;;
+
+          destroy)
+            terraform destroy \
+              -var-file="$TFVARS" \
+              -auto-approve \
+              -input=false \
+              -no-color
+            ;;
+
+          refresh)
+            terraform refresh \
+              -input=false \
+              -no-color
+            ;;
+
+          init)
+            terraform init \
+              -no-color
+            ;;
+
+          validate)
+            terraform validate \
+              -no-color
+            ;;
+
+          output)
+            terraform output \
+              -no-color
+            ;;
+
+          fmt)
+            terraform fmt \
+              -check \
+              -recursive \
+              -no-color
+            ;;
+
+          *)
+            echo "❌ ERROR: Unsupported action '$ACTION'"
+            exit 1
+            ;;
+        esac
+

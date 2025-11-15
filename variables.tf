@@ -32,5 +32,5 @@ variable "tags" {
 }
 
 variable "access_tier" {
-  
+
 }
