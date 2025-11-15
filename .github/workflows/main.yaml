@@ -4,17 +4,37 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment name'
+        description: 'Select Environment'
         required: true
-        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+        default: dev
+
       action:
         description: 'Terraform action to perform'
         required: true
-        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+          - refresh
+          - validate
+        default: plan
+
       tfvars_file:
-        description: 'Path to tfvars file'
+        description: 'Select tfvars file based on environment'
         required: true
-        default: 'envs/dev/dev.tfvars'
+        type: choice
+        options:
+          - envs/dev/dev.tfvars
+          - envs/qa/qa.tfvars
+          - envs/prod/prod.tfvars
+        default: envs/dev/dev.tfvars
+
 jobs:
   plan:
     runs-on: ubuntu-latest
