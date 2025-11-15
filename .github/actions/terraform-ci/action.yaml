@@ -1,0 +1,79 @@
+name: Terraform CI Action
+description: Run Terraform init, validate, plan with Azure backend
+
+inputs:
+  environment:
+    required: true
+    description: Environment name (dev, prod, etc.)
+  action:
+    required: true
+    description: Environment name (plan, apply, refresh etc.)
+  tfvars_file:
+    required: true
+    description: Path to tfvars file
+
+  # Backend values supplied from workflow
+  BACKEND_CONTAINER_NAME:
+    required: true
+  BACKEND_STORAGE_ACCOUNT:
+    required: true
+  BACKEND_RESOURCE_GROUP_NAME:
+    required: true
+  BACKEND_KEY:
+    required: true
+
+  ARM_SUBSCRIPTION_ID:
+    required: true
+  ARM_TENANT_ID:
+    required: true
+  ARM_CLIENT_ID:
+    required: true
+  ARM_CLIENT_SECRET:
+    required: true
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.9.5
+        terraform_wrapper: false
+
+    - name: Azure Login
+      shell: bash
+      run: |
+        az login --service-principal \
+          -u "${{ inputs.ARM_CLIENT_ID }}" \
+          -p "${{ inputs.ARM_CLIENT_SECRET }}" \
+          --tenant "${{ inputs.ARM_TENANT_ID }}"
+
+        az account set --subscription "${{ inputs.ARM_SUBSCRIPTION_ID }}"
+
+    - name: Configure Backend
+      shell: bash
+      run: |
+        echo "resource_group_name  = \"${{ inputs.BACKEND_RESOURCE_GROUP_NAME }}\"" > backend.tfvars
+        echo "storage_account_name = \"${{ inputs.BACKEND_STORAGE_ACCOUNT }}\"" >> backend.tfvars
+        echo "container_name       = \"${{ inputs.BACKEND_CONTAINER_NAME }}\"" >> backend.tfvars
+        echo "key                  = \"${{ inputs.BACKEND_KEY }}\"" >> backend.tfvars
+
+    - name: Terraform Init
+      shell: bash
+      run: |
+        terraform init \
+          -backend-config=backend.tfvars \
+          -input=false \
+          -no-color
+
+    - name: Terraform Validate
+      shell: bash
+      run: terraform validate -no-color
+
+    - name: Terraform ${ { inputs.action | capitalize } }
+      shell: bash
+      run: |
+        terraform ${{ inputs.action }} \
+          -var-file="${{ inputs.tfvars_file }}" \
+          -no-color
