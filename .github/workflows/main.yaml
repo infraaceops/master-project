@@ -1,8 +1,20 @@
-name: Terraform Dev
+name: Terraform CI Workflow
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment name'
+        required: true
+        default: 'dev'
+      action:
+        description: 'Terraform action to perform'
+        required: true
+        default: 'plan'
+      tfvars_file:
+        description: 'Path to tfvars file'
+        required: true
+        default: 'envs/dev/dev.tfvars'
 
 jobs:
   plan:
@@ -14,9 +26,9 @@ jobs:
       - name: Run Terraform CI Action
         uses: ./.github/actions/terraform-ci
         with:
-          environment: dev
-          action: plan
-          tfvars_file: envs/dev/dev.tfvars
+          environment: ${{ github.event.inputs.environment }}
+          action: ${{ github.event.inputs.action }}
+          tfvars_file: ${{ github.event.inputs.tfvars_file }}
 
           BACKEND_CONTAINER_NAME: ${{ secrets.BACKEND_CONTAINER_NAME }}
           BACKEND_STORAGE_ACCOUNT: ${{ secrets.BACKEND_STORAGE_ACCOUNT }}
