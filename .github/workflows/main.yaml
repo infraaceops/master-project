@@ -15,7 +15,6 @@ on:
         description: 'Path to tfvars file'
         required: true
         default: 'envs/dev/dev.tfvars'
-
 jobs:
   plan:
     runs-on: ubuntu-latest
